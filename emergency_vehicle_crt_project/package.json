@@ -1,0 +1,13 @@
+{
+  "name": "emergency-vehicle-crt-system",
+  "version": "1.0.0",
+  "description": "Emergency Vehicle Priority Traffic Signal Synchronization via CRT",
+  "main": "public/index.html",
+  "scripts": {
+    "start": "npx serve public -l 3000",
+    "cpp": "make run"
+  },
+  "devDependencies": {
+    "serve": "^14.2.4"
+  }
+}

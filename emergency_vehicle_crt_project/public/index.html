@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Emergency Vehicle Priority System (CRT-Based) - V4</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+    body { family: 'Inter', sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0b1120; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    * { scrollbar-width: thin; scrollbar-color: #334155 #0b1120; }
+    input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type=number] { -moz-appearance: textfield; appearance: textfield; }
+    @keyframes siren-amb { 0%, 100% { box-shadow: 0 0 15px rgba(239, 68, 68, 0.9); } 50% { box-shadow: 0 0 15px rgba(59, 130, 246, 0.9); } }
+    @keyframes siren-pol { 0%, 100% { box-shadow: 0 0 15px rgba(59, 130, 246, 0.9); } 50% { box-shadow: 0 0 15px rgba(239, 68, 68, 0.9); } }
+    .siren-ambulance { animation: siren-amb 0.8s infinite; }
+    .siren-police { animation: siren-pol 0.6s infinite; }
+    .road-lane-marking { background: repeating-linear-gradient(90deg, #f8fafc 0, #f8fafc 20px, transparent 20px, transparent 40px); }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-rose-500 selection:text-white">
+  <header class="bg-slate-950/80 backdrop-blur-md border-b border-slate-800 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:kx-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-x1 bg-gradient-to-tr from-rose-600 to-amber-500 flex items-center justify-center text-white shadow-lg shadow-rose-950/40">
+          <i class="fa-solid fa-truck-medical text-lg"></i>
+        </div>
+        <div>
+          <h1 class="text-base sm:text-lc font-bold bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+            Emergency Vehicle Priority
+          </h1>
+          <p class="text-[11px] text-slate-400 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            Traffic Signal Synchronization via Chinese Remainder Theorem
+          </p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-xs px-2.5 py-1 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-300 font-mono">
+          <i class="fa-solid fa-wave-square text-rose-400 mr-1"></i> Green Wave System
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <section class="lg-col-span-5 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20 flex items-center justify-center">
+                <i class="fa-solid fa-list-ol text-sm"></i>
+              </div>
+             <h2 class="font-bold text-slate-200 text-sm sm:text-base">Emergency Vehicle Queue</h2>
+            </div>
+            <span class="text-[11px] font-mono text-slate-400 bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-700/60">Sorted by Priority</span>
+          </div>
+          <div id="queue-container" class="space-y-2.5 max-h-[260px] overflow-y-auto pr-1"></div>
+        </div>
+        <div class="mt-4 pt-4 border-t border-slate-800">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <select id="vehicle-type-select" class="bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-xl px-2.5 py-2">
+              <option value="Ambulance" data-prio="1" data-icon="fa-truck-medical" data-color="rose">Ambulance (P1)</option>
+              <option value="Fire Engine" data-prio="2" data-icon="fa-fire-extinguisher" data-color="amber">Fire Engine (P2)</option>
+              <option value="Police" data-prio="3" data-icon="fa-shield-halved" data-color="blue">Police (P3)</option>
+              <option value="VIP Convoy" data-prio="4" data-icon="fa-car-tunnel" data-color="purple">VIP Convoy (P4)</option>
+            </select>
+            <input type="text" id="vehicle-id-input" placeholder="Tag (e.g. AMB-88)" class="bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-xl px-2.5 py-2 font-mono">
+            <button id="add-vehicle-btn" class="bg-rose-600 hover:bg-rose-500 text-white text-xs font-medium py-2 px-3 rounded-xl transition">Add Unit</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="lg-col-span-7 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-mg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 flex items-center justify-center"><i class="fa-solid fa-traffic-light text-sm"></i></div>
+              <h2 class="font-bold text-slate-200 text-sm sm:text-base">Traffic Signal Timing Parameters</h2>
+            </div>
+            <button id="recalc-btn" class="text-xs px-2.5 py-1 rounded-mg bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/20">Re-Calculate CRT</button>
+          </div>
+          <div class="overflow-x-auto border border-slate-800 rounded-xl bg-slate-950/60">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-800/80 text-slate-300 uppercase font-mono text-[10px]">
+                <tr><th class="py-2.5 px-3">Intersection</th><th class="py-2.5 px-3">Full Cycle (m)</th><th class="py-2.5 px-3">Green Offset (r)</th><th class="py-2.5 px-3">Timing Rule</th></tr>
+              </thead>
+              <tbody id="intersections-tbody" class="divide-y divide-slate-800/60 font-mono text-slate-300"></tbody>
+            </table>
+          </div>
+          <div id="coprime-status" class="mt-3 p-3 rounded-xl bg-slate-800/60 border border-slate-700/80 flex items-center justify-between text-xs"></div>
+        </div>
+      </section>
+    </div>
+
+    <section class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+      <div class="flex items-center justify-between flex-wrap gap-2">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-mg bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center"><i class="fa-solid fa-calculator text-sm"></i></div>
+          <div>
+            <h2 class="font-bold text-slate-200 text-sm sm:text-base">Chinese Remainder Theorem Mathematical Solution</h2>
+            <p class="text-xs text-slate-400">Optimal departure time for non-stop green wave</p>
+          </div>
+        </div>
+        <div class="text-right">
+          <span class="text-[10px] text-slate-400 font-mono uppercase block">Optimal Departure</span>
+          <span id="final-t-val" class="text-base sm:text-lg font-bold font-mono text-emerald-400">t = 0 s</span>
+          <span id="cycle-mod-val" class="text-[10px] text-slate-500 font-mono block">repeats every M = 693s</span>
+        </div>
+      </div>
+      <div id="crt-steps-output" class="space-y-3"></div>
+    </section>
+
+    <section class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-mg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center"><i class="fa-solid fa-road text-sm"></i></div>
+          <h2 class="font-bold text-slate-200 text-sm sm:text-base">Live Route Corridor Simulation</h2>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="sim-play-btn" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold">Play</button>
+          <button id="sim-pause-btn" class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs">Pause</button>
+          <button id="sim-reset-btn" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center"><i class="fa-solid fa-rotate-left text-xs"></i></button>
+        </div>
+      </div>
+      <div class="relative bg-slate-950 rounded-xl p-4 border border-slate-800 overflow-hidden">
+        <div class="flex justify-between text-xs font-mono mb-6 text-slate-400 bg-slate-900/60 p-2.5 rounded-lg border border-slate-800/80">
+          <span>Clock: <span id="sim-time" class="text-emerald-400 font-bold">0.0 s</span></span>
+          <span id="veh-motion-status" class="text-emerald-400 font-semibold">Ready to Depart</span>
+          <span id="active-vehicle-label" class="text-rose-400 font-semibold">Vehicle: AMB-101 (P1)</span>
+        </div>
+        <div class="relative pt-10 pb-8 px-4">
+          <div class="h-20 bg-slate-800/90 rounded-xl border border-slate-700 relative overflow-hidden flex items-center">
+            <div class="road-lane-marking"w-full h-1 opacity-75"></div>
+          </div>
+          <div class="absolute inset-0 flex justify-between items-center px-4 pointer-events-none" id="signals-visual-container"></div>
+          <div id="sim-vehicle" class="absolute top-1/2 -translate-y-1/2 w-14 h-9 bg-rose-600 rounded-lg shadow-lg flex items-center justify-center text-white siren-ambulance z-30" style="left: 2%;">
+            <i id="sim-vehicle-icon" class="fa-solid fa-truck-medical"></i>
+          </div>
+        </div>
+        <div class="mt-3 pt-3 border-t border-slate-800 grid grid-cols-3 gap-3 text-slate-400" id="corridor-status-summary"></div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const state = {
+      activeVehicleId: "AMB-101",
+      vehicles: [
+        { id: "AMB-101", type: "Ambulance", priority: 1, color: "rose", icon: "fa-truck-medical" },
+        { id: "FIR-302", type: "Fire Engine", priority: 2, color: "amber", icon: "fa-fire-extinguisher" },
+        { id: "POL-204", type: "Police", priority: 3, color: "blue", icon: "fa-shield-halved" },
+        { id: "VIP-999", type: "VIP Convoy", priority: 4, color: "purple", icon: "fa-car-tunnel" }
+      ],
+      intersections: [
+        { id: 1, name: "Crossway A", m: 7, r: 3, posPercent: 25, travelTime: 4 },
+        { id: 2, name: "Boulevard B", m: 9, r: 5, posPercent: 55, travelTime: 9 },
+        { id: 3, name: "High Street C", m: 11, r: 8, posPercent: 85, travelTime: 14 }
+      ],
+      crtResult: { t: 0, M: 693, steps: [] },
+      sim: { running: false, currentTime: 0, vehicleProgress: 2, timerId: null, baseSpeed: 6.5 }
+    };
+
+    function gcd(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) { let t = b; b = a % b; a = t; } return a; }
+    function extendedEuclid(a, m) { let m0 = m, y = 0, x = 1; if (m === 1) return 0; while (a > 1) { if (m === 0) return null; let q = Math.floor(a / m), t = m; m = a % m; a = t; t = y; y = x - q * y; x = t; } if (x < 0) x += m0; return x; }
+
+    function getSignalState(idx, timeSeconds) {
+      const s = state.intersections[idx];
+      const phase = ((timeSeconds % s.m) + s.m) % s.m;
+      let diff = Math.abs(phase - s.r);
+      if (diff > s.m / 2) diff = s.m - diff;
+      return { isGreen: diff <= 1.1, isYellow: diff > 1.1 && diff <= 1.6, isRed: diff > 1.6, currentPhase: phase.toFixed(1) };
+    }
+
+    function calculateCRT() {
+      const moduli = state.intersections.map(i => i.m);
+      const effR = state.intersections.map(i => { let eff = (i.r - (i.travelTime % i.m)) % i.m; return eff < 0 ? eff + i.m : eff; });
+      let M4val = moduli.reduce((acc, curr) => acc * curr, 1);
+      let total = 0, steps = [];
+      for (let i = 0; i < moduli.length; i++) {
+        let mi = moduli[i], r = effR[i], Mi = M4val / mi, yi = extendedEuclid(Mi, mi);
+        let term = r * Mi * yi; total += term;
+        steps.push({ signal: i + 1, name: state.intersections[i].name, targetR: state.intersections[i].r, effectiveR: r, mi, Mi, yi, term, travelTime: state.intersections[i].travelTime });
+      }
+      let t = ((total % M4val) + M4val) % M4val;
+      state.crtResult = { t, M: M4val, steps };
+      document.getElementById("final-t-val").textContent = 't = ' + t + ' s';
+      document.getElementById("cycle-mod-val").textContent = 'repeats every M = ' + M4val + 's';
+      renderCRTSteps();
+    }
+
+    function renderCRTSteps() {
+      const c = document.getElementById("crt-steps-ouput");
+      let html = state.crtResult.steps.map(s => 
+        '<div class="p-2 bg-slate-950/60 rounded-xl border border-slate-800 text-xs">' +
+        'Signal ' + s.signal + ': depart at t &#x2261; (' + s.targetR + ' - ' + s.travelTime + 's) &#x2261; <b class="text-emerald-300">' + s.effectiveR + '</b> (mod ' + s.mi + ') | Term = ' + s.term + '</div>'
+      ).join('');
+      html += '<div class="p-2 text-emerald-400 font-bold text-xs">Optimal Departure t = ' + state.crtResult.t + ' seconds</div>';
+      c.innerHTML = html;
+    }
+
+    function renderVehicles() {
+      const container = document.getElementById("queue-container");
+      container.innerHTML = state.vehicles.map(v =>
+        '<div class="p-3 rounded-xl border border-slate-800 bg-slate-900/60 flex items-center justify-between">' +
+          '<div class="flex items-center gap-3">' +
+            '<span class="w-6 h-6 rounded-full text-xs font-bold bg-slate-800 text-slate-300 flex items-center justify-center">#' + v.priority + '</span>' +
+            '<div><span class="font-semibold text-sm text-slate-200">' + v.type + '</span> <span class="font-mono text-xs px-1.5 py-0.2 bg-slate-800 rounded text-slate-300">' + v.id + '</span></div>' +
+          '</div>' +
+        '</div>'
+      ).join('');
+    }
+
+    function stepIntersection(idx, field, delta) { updateIntersection(idx, field, state.intersections[idx][field] + delta); }
+    function updateIntersection(idx, field, value) {
+      let v = parseInt(value, 10); if (isNaN(v)) return;
+      if (field === 'm') { if (v < 2) v = 2; state.intersections[idx].m = v; if (state.intersections[idx].r >= v) state.intersections[idx].r = v - 1; }
+      if (field === 'r') { if (v < 0) v = 0; if (v >= state.intersections[idx].m) v = state.intersections[idx].m - 1; state.intersections[idx].r = v; }
+      renderIntersections(); calculateCRT();
+    }
+
+    function renderIntersections() {
+      const tbody = document.getElementById("intersections-tbody");
+      tbody.innerHTML = state.intersections.map((item, idx) =>
+        '<tr class="hover:bg-slate-800/40">' +
+          '<td class="py-2.5 px-3 text-slate-200"><div class="font-sans font-medium text-xs">Signal ' + item.id + '</div><div class="text-[11px] text-slate-400 font-sans">' + item.name + ' (' + item.travelTime + 's)</div></td>' +
+          '<td class="py-2.5 px-3">' +
+            '<div class="inline-flex items-center rounded-lg border border-slate-700/80 bg-slate-900 p-0.5">' +
+              '<input type="number" value="' + item.m + '" onchange="updateIntersection(' + idx + ', \'m\', this.value)" class="w-12 bg-transparent text-center font-mono text-xs font-semibold text-slate-100 focus:outline-none">' +
+              '<div class="flex flex-col border-l border-slate-700/80">' +
+                '<button type="button" onclick="stepIntersection(' + idx + ', \'m\', 1)" class="flex h-3.5 w-5 items-center justify-center bg-slate-900 hover:bg-slate-800 text-slate-400"><i class="fa-solid fa-chevron-up text-[8px]"></i></button>' +
+                '<button type="button" onclick="stepIntersection(' + idx + ', \'m\', -1)" class="flex h-3.5 w-5 items-center justify-center bg-slate-900 hover:bg-slate-800 text-slate-400 border-t border-slate-700/70"><i class="fa-solid fa-chevron-down text-[8px]"></i></button>' +
+              '</div>' +
+            '</div>' +
+          '</td>' +
+          '<td class="py-2.5 px-3">' +
+            '<div class="inline-flex items-center rounded-lg border border-slate-700/80 bg-slate-900 p-0.5">' +
+              '<input type="number" value="' + item.r + '" onchange="updateIntersection(' + idx + ', \'r\', this.value)" class="w-12 bg-transparent text-center font-mono text-xs font-semibold text-slate-100 focus:outline-none">' +
+              '<div class="flex flex-col border-l border-slate-700/80">' +
+                '<button type="button" onclick="stepIntersection(' + idx + ', \'r\', 1)" class="flex h-3.5"w-5 items-center justify-center bg-slate-900 hover:bg-slate-800 text-slate-400"><i class="fa-solid fa-chevron-up text-[8px]"></i></button>' +
+                '<button type="button" onclick="stepIntersection(' + idx + ', \'r\', -1)" class="flex h-3.5 w-5 items-center justify-center bg-slate-900 hover:bg-slate-800 text-slate-400 border-t border-slate-700/70"><i class="fa-solid fa-chevron-down text-[8px]"></i></button>' +
+              '</div>' +
+            '</div>' +
+          '</td>' +
+          '<td class="py-2.5 px-3 text-cyan-300 text-xs">Turns green at second <b class="text-amber-300">' + item.r + '</b></td>' +
+        '</tr>'
+      ).join('');
+      renderVisualSignals();
+    }
+
+    function renderVisualSignals() {
+      const c = document.getElementById("signals-visual-container");
+      const sum = document.getElementById("corridor-status-summary");
+      c.innerHTML = state.intersections.map((item, idx) =>
+        '<div class="absolute top-0 bottom-0 flex flex-col items-center transform -translate-x-1/2" style="left: ' + item.posPercent + '%;">' +
+          '<div class="bg-slate-900 border border-slate-700/90 px-2 py-1.5 rounded-xl shadow-2xl flex flex-col items-center gap-1 z-20">' +
+            '<span class="text-[10px] font-bold text-slate-300 font-mono">S' + item.id + '</span>' +
+            '<div id="light-red-' + idx + '" class="w-3.5 h-3.5 rounded-full bg-red-950 border border-red-800"></div>' +
+            '<div id="light-yellow-' + idx + '" class="w-3.5 h-3.5 rounded-full bg-amber-950 border border-amber-800"></div>' +
+            '<div id="light-green-' + idx + '" class="w-3.5 h-3.5 rounded-full bg-emerald-500 border border-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.9)]"></div>' +
+          '</div>' +
+          '<div class="w-0.5 h-14 border-r-2 border-dashed border-amber-400/80 my-2 opacity-80"></div>' +
+          '<span class="text-[10px] font-mono font-semibold text-cyan-300 bg-slate-900/95 px-2 py-0.5 rounded border border-slate-700/80">+' + item.travelTime + 's</span>' +
+        '</div>'
+      ).join('');
+      sum.innerHTML = state.intersections.map(item => 
+        '<div class="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800/90 text-center">' +
+          '<div class="font-bold text-slate-200 text-xs">Signal ' + item.id + '</div>' +
+          '<div class="text-[10px] text-slate-400 font-mono">Target: ' + item.r + 's</div>' +
+        '</div>'
+      ).join('');
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      renderVehicles();
+      renderIntersections();
+      calculateCRT();
+    });
+  </script>
+</body>
+</html>
